@@ -17,9 +17,6 @@ import com.zakaria.minifacebook.model.FacebookPictures;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by zakaria on 17-07-10.
- */
 
 public class PicturesAdapter extends RecyclerView.Adapter<PicturesAdapter.MyViewHolders>  {
 

@@ -1,10 +1,14 @@
 package com.zakaria.minifacebook;
 
-import android.content.ContextWrapper;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.Manifest;
+import android.content.ContentValues;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
@@ -13,6 +17,8 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.facebook.AccessToken;
 import com.facebook.GraphRequest;
@@ -25,12 +31,10 @@ import com.zakaria.minifacebook.model.FacebookPictures;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import static android.view.View.GONE;
 
 public class AlbumActivity extends AppCompatActivity {
 
@@ -40,6 +44,9 @@ public class AlbumActivity extends AppCompatActivity {
     private RecyclerView ui_recyclerView_picture;
     private PicturesAdapter adapter;
     private FloatingActionButton fab;
+    public static int WRITE_EXTERNAL_STORAGE = 123;
+    private FacebookAlbums facebookAlbums;
+    private ProgressBar ui_progressBar;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +59,9 @@ public class AlbumActivity extends AppCompatActivity {
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(true);
 
-        FacebookAlbums facebookAlbums = getIntent().getExtras().getParcelable(ALBUM_OBJ);
+        ui_progressBar = (ProgressBar) findViewById(R.id.progressBar_album);
+
+        facebookAlbums = getIntent().getExtras().getParcelable(ALBUM_OBJ);
         GetFacebookImages(facebookAlbums.getId()+"");
 
         fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -60,14 +69,14 @@ public class AlbumActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 // Not working
-                savePictures(adapter.getFacebookPicturesCheckedList());
+                addImageToGallery(adapter.getFacebookPicturesCheckedList());
             }
         });
-
+        checkPermission();
 
     }
     public void GetFacebookImages(final String albumId) {
-
+        ui_progressBar.setVisibility(View.VISIBLE);
         Bundle parameters = new Bundle();
         parameters.putString("fields", "images");
         new GraphRequest(
@@ -96,6 +105,7 @@ public class AlbumActivity extends AppCompatActivity {
                                                     jsonArrayImage.getJSONObject(0).getString("source")));
                                         }
                                     }
+                                    ui_progressBar.setVisibility(GONE);
                                     loadRecycleView();
                                 }
                         } else {
@@ -121,35 +131,42 @@ public class AlbumActivity extends AppCompatActivity {
         ui_recyclerView_picture.setAdapter(adapter);
     }
 
-    void savePictures(List<FacebookPictures> list)
-    {
-        Bitmap bitmap = null;
-        for(int i=0 ; i<list.size(); i++)
-        {
-            Log.e("size",list.size()+" : "+list.get(i).getSource());
-            File f=new File(list.get(i).getSource());
+    public void addImageToGallery(List<FacebookPictures> list) {
+        for(int i=0 ; i<list.size(); i++) {
 
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            bitmap = BitmapFactory.decodeFile(list.get(i).getSource(), options);
+            ContentValues values = new ContentValues();
 
-            //bitmap = BitmapFactory.decodeStream(new FileInputStream(f));
-            ContextWrapper wrapper = new ContextWrapper(getApplicationContext());
-            File file = wrapper.getDir("ImagesFB",MODE_PRIVATE);
-            file = new File(file, "fb_"+i);
-            try{
-                OutputStream stream = null;
-                stream = new FileOutputStream(file);
-                bitmap.compress(Bitmap.CompressFormat.JPEG,100,stream);
-                stream.flush();
-                stream.close();
-            }
-            catch (IOException e) // Catch the exception
-            {
-                e.printStackTrace();
-            }
+            values.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis());
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+            values.put(MediaStore.MediaColumns.DATA, list.get(i).getSource());
+
+            getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            Toast.makeText(AlbumActivity.this,"Images sauvgarder",Toast.LENGTH_SHORT).show();
+            GetFacebookImages(facebookAlbums.getId()+"");
         }
+    }
 
+    private void checkPermission(){
+        int permissionCheck = ContextCompat.checkSelfPermission(AlbumActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    AlbumActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_EXTERNAL_STORAGE);
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+
+            case 123:
+                if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    addImageToGallery(adapter.getFacebookPicturesCheckedList());
+                }
+                break;
+
+            default:
+                break;
+        }
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

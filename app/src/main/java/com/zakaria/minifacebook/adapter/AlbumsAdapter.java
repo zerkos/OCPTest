@@ -15,9 +15,6 @@ import com.zakaria.minifacebook.model.FacebookAlbums;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by zakaria on 17-07-10.
- */
 
 public class AlbumsAdapter extends RecyclerView.Adapter<AlbumsAdapter.MyViewHolders>  {
 

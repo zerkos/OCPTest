@@ -26,21 +26,26 @@ public class LoginFragment extends Fragment {
     public static String USER_ID = "user_id";
     CallbackManager callbackManager;
     LoginButton loginButton;
-
+    private AccessToken accessToken;
     public LoginFragment() {
         // Required empty public constructor
     }
 
-
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         callbackManager = CallbackManager.Factory.create();
+
         //Get current access tocken
-        AccessToken accessToken = AccessToken.getCurrentAccessToken();
+        accessToken = AccessToken.getCurrentAccessToken();
         //check if logged
+        if(accessToken != null)
+            toMain(accessToken.getUserId());
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
         if(accessToken != null)
             toMain(accessToken.getUserId());
     }

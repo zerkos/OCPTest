@@ -3,9 +3,6 @@ package com.zakaria.minifacebook.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-/**
- * Created by zakaria on 17-07-10.
- */
 
 public class FacebookPictures implements Parcelable{
 
